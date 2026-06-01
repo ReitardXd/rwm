@@ -2,8 +2,6 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
-No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
-
 ## Features
 
 - **Master-stack tiling** — first window gets left half, rest stack on the right
@@ -60,12 +58,12 @@ Edit the constants at the top of `src/main.rs`:
 const TERMINAL: &str = "st";  // "alacritty", "kitty", "xterm", etc.
 ```
 
-Modifier key, keybindings, and layout are all hardcoded in the same file — easy to find, easy to change.
+Modifier key, keybindings, and layout are all hardcoded in the same file.
 
 ## Dependencies
 
 - Rust 2024 edition
-- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings (no C deps)
+- [`x11rb`](https://crates.io/crates/x11rb)
 
 ## Roadmap
 
