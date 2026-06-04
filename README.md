@@ -2,17 +2,19 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
+No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
+
 ## Features
 
 - **Master-stack tiling** — first window gets left half, rest stack on the right
 - **Focus follows mouse** — EnterNotify driven, no click-to-focus
 - **Kill focused window** — graceful `WM_DELETE_WINDOW`, falls back to `XKillClient`
 - **Launch terminal** — one keybinding, configurable command
-- **Rotate stack** — cycle any window into master position
+- **Focus cycling** — cycle focus between windows without rearranging layout
 - **Gaps** — configurable pixel gaps between windows and screen edges
-- **9 workspaces** — switch with Mod4+1..9, move windows with Mod4+Shift+1..9
-- **Status bar** — X11 core font bar showing workspace indicators + window title
-- **Floating windows** — Mod4+Space to toggle, Mod4+drag to move, Mod4+right-drag to resize
+- **9 workspaces** — switch with Mod4+1..9, move windows with Mod4+Shift+1..9, or click the bar
+- **Status bar** — X11 core font bar showing clickable workspace indicators + window title
+- **Fullscreen toggle** — Mod4+f to toggle, covers entire screen including bar
 - **Quit cleanly** — `Mod4+Shift+q`
 
 ## Keybindings
@@ -21,13 +23,12 @@ A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 |---------|--------|
 | `Mod4 + Return` | Spawn terminal |
 | `Mod4 + Shift + c` | Kill focused window |
-| `Mod4 + j` | Rotate forward (next window → master) |
-| `Mod4 + k` | Rotate backward (last window → master) |
-| `Mod4 + Space` | Toggle floating for focused window |
+| `Mod4 + j` | Focus next window |
+| `Mod4 + k` | Focus previous window |
+| `Mod4 + f` | Toggle fullscreen for focused window |
 | `Mod4 + 1..9` | Switch to workspace 1–9 |
 | `Mod4 + Shift + 1..9` | Move focused window to workspace 1–9 |
-| `Mod4 + Left-drag` | Move window (makes it floating) |
-| `Mod4 + Right-drag` | Resize window (makes it floating) |
+| Click bar workspace | Switch to that workspace |
 | `Mod4 + Shift + q` | Quit rwm |
 
 `Mod4` is the Super/Windows key.
@@ -78,29 +79,16 @@ src/
 ├── main.rs      entry point + event loop
 ├── config.rs    all user-tunable constants (like dwm's config.h)
 ├── keys.rs      keysym constants, keycode translation, grab helpers
-├── client.rs    per-window state: geometry, floating, workspace
+├── client.rs    per-window state: geometry, fullscreen, workspace
 ├── layout.rs    pure-geometry tiling (no X11 calls)
-├── bar.rs       status bar: window, font, GC, draw
-└── wm.rs        core WM: manage, focus, kill, rotate, workspaces, floating
+├── bar.rs       status bar: window, font, GC, draw, clickable workspaces
+└── wm.rs        core WM: manage, focus, kill, workspaces, fullscreen
 ```
 
 ## Dependencies
 
 - Rust 2024 edition
-- [`x11rb`](https://crates.io/crates/x11rb)
-
-## Roadmap
-
-- [x] Mouse-follows-focus
-- [x] Kill focused window
-- [x] Launch terminal
-- [x] Rotate/cycle master
-- [x] Gaps between windows
-- [x] Multiple workspaces
-- [x] Status bar
-- [x] Floating window support
-- [ ] Fullscreen toggle
-- [ ] Config file or hardcoded config struct
+- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings (no C deps)
 
 ## License
 

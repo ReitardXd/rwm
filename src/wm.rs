@@ -1,7 +1,6 @@
 use x11rb::connection::Connection;
 use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
-use x11rb::protocol::Event;
 
 use crate::config::*;
 use crate::client::Client;
@@ -17,29 +16,49 @@ pub struct WM {
     pub focused: Option<Window>,
     pub current_ws: usize,
     pub bar: StatusBar,
+    /// Windows we've unmapped ourselves (workspace switch).
+    /// UnmapNotify for these should be ignored.
+    pending_unmaps: Vec<Window>,
 }
 
 impl WM {
+    pub fn new(
+        conn: RustConnection, root: Window,
+        screen_width: u16, screen_height: u16,
+        bar: StatusBar,
+    ) -> Self {
+        Self {
+            conn, root, screen_width, screen_height,
+            clients: vec![], focused: None, current_ws: 0,
+            bar, pending_unmaps: vec![],
+        }
+    }
+
     // ── Layout ──────────────────────────────────────────────────────────
 
-    /// Apply tiling layout to current workspace, then configure all windows
     pub fn apply_layout(&mut self) {
         let sw = self.screen_width as u32;
         let sh = self.screen_height as u32;
 
-        // collect mutable refs to clients on current workspace
         let mut ws_clients: Vec<&mut Client> = self.clients.iter_mut()
             .filter(|c| c.workspace == self.current_ws)
             .collect();
 
         layout::tile(&mut ws_clients, sw, sh);
 
-        // apply geometry to X11
         for c in &ws_clients {
-            self.conn.configure_window(c.window, &ConfigureWindowAux::new()
-                .x(c.x).y(c.y).width(c.w).height(c.h)
-                .border_width(0u32)
-            ).unwrap();
+            if c.fullscreen {
+                self.conn.configure_window(c.window, &ConfigureWindowAux::new()
+                    .x(0).y(0).width(sw).height(sh)
+                    .border_width(0u32)
+                    .stack_mode(StackMode::ABOVE)
+                ).unwrap();
+            } else {
+                self.conn.configure_window(c.window, &ConfigureWindowAux::new()
+                    .x(c.x).y(c.y).width(c.w).height(c.h)
+                    .border_width(0u32)
+                ).unwrap();
+            }
         }
         self.conn.flush().unwrap();
         self.update_bar();
@@ -63,7 +82,6 @@ impl WM {
         self.update_bar();
     }
 
-    /// Focus the first tiled window on current workspace, or clear focus
     pub fn focus_top(&mut self) {
         let top = self.clients.iter()
             .find(|c| c.workspace == self.current_ws)
@@ -79,30 +97,50 @@ impl WM {
         }
     }
 
+    /// Focus the next window on the current workspace (cycle forward)
+    pub fn focus_next(&mut self) {
+        let ws_windows: Vec<Window> = self.clients.iter()
+            .filter(|c| c.workspace == self.current_ws)
+            .map(|c| c.window).collect();
+        if ws_windows.is_empty() { return; }
+
+        let current_idx = self.focused
+            .and_then(|f| ws_windows.iter().position(|&w| w == f))
+            .unwrap_or(0);
+        let next_idx = (current_idx + 1) % ws_windows.len();
+        self.focus(ws_windows[next_idx]);
+    }
+
+    /// Focus the previous window on the current workspace (cycle backward)
+    pub fn focus_prev(&mut self) {
+        let ws_windows: Vec<Window> = self.clients.iter()
+            .filter(|c| c.workspace == self.current_ws)
+            .map(|c| c.window).collect();
+        if ws_windows.is_empty() { return; }
+
+        let current_idx = self.focused
+            .and_then(|f| ws_windows.iter().position(|&w| w == f))
+            .unwrap_or(0);
+        let prev_idx = if current_idx == 0 { ws_windows.len() - 1 } else { current_idx - 1 };
+        self.focus(ws_windows[prev_idx]);
+    }
+
     // ── Manage / Unmanage ───────────────────────────────────────────────
 
     pub fn manage(&mut self, win: Window) {
-        // don't manage the bar
         if win == self.bar.window { return; }
+        if self.clients.iter().any(|c| c.window == win) { return; }
 
-        // subscribe to events on the client
+        // Only subscribe to ENTER_WINDOW and PROPERTY_CHANGE.
+        // Do NOT subscribe to STRUCTURE_NOTIFY here — we get
+        // UnmapNotify/DestroyNotify from root's SUBSTRUCTURE_NOTIFY.
+        // Subscribing here too causes double events that break workspace switching.
         let _ = self.conn.change_window_attributes(win,
             &ChangeWindowAttributesAux::new()
-                .event_mask(EventMask::ENTER_WINDOW | EventMask::STRUCTURE_NOTIFY
-                    | EventMask::PROPERTY_CHANGE),
+                .event_mask(EventMask::ENTER_WINDOW | EventMask::PROPERTY_CHANGE),
         );
 
-        let mut client = Client::new(win, self.current_ws);
-
-        // check if window requests floating (transient_for or fixed size)
-        if let Ok(cookie) = self.conn.get_property(
-            false, win, AtomEnum::WM_TRANSIENT_FOR, AtomEnum::WINDOW, 0, 1,
-        ) {
-            if let Ok(reply) = cookie.reply() {
-                if reply.value_len > 0 { client.floating = true; }
-            }
-        }
-
+        let client = Client::new(win, self.current_ws);
         self.clients.push(client);
         self.conn.map_window(win).unwrap();
         self.apply_layout();
@@ -115,6 +153,16 @@ impl WM {
         if self.focused == Some(win) { self.focused = None; }
         self.apply_layout();
         self.focus_top();
+    }
+
+    /// Returns true if this UnmapNotify was caused by us and should be ignored.
+    pub fn consume_pending_unmap(&mut self, win: Window) -> bool {
+        if let Some(pos) = self.pending_unmaps.iter().position(|&w| w == win) {
+            self.pending_unmaps.remove(pos);
+            true
+        } else {
+            false
+        }
     }
 
     // ── Kill ────────────────────────────────────────────────────────────
@@ -136,48 +184,15 @@ impl WM {
         self.conn.flush().unwrap();
     }
 
-    // ── Rotation ────────────────────────────────────────────────────────
-
-    pub fn rotate_next(&mut self) {
-        let ws = self.current_ws;
-        let ws_indices: Vec<usize> = self.clients.iter().enumerate()
-            .filter(|(_, c)| c.workspace == ws)
-            .map(|(i, _)| i).collect();
-        if ws_indices.len() < 2 { return; }
-
-        // rotate: first ws client goes to end
-        let first_idx = ws_indices[0];
-        let client = self.clients.remove(first_idx);
-        // insert after the last ws client (which shifted left by 1)
-        let last_idx = ws_indices[ws_indices.len() - 1] - 1;
-        self.clients.insert(last_idx + 1, client);
-        self.apply_layout();
-        self.focus_top();
-    }
-
-    pub fn rotate_prev(&mut self) {
-        let ws = self.current_ws;
-        let ws_indices: Vec<usize> = self.clients.iter().enumerate()
-            .filter(|(_, c)| c.workspace == ws)
-            .map(|(i, _)| i).collect();
-        if ws_indices.len() < 2 { return; }
-
-        let last_idx = ws_indices[ws_indices.len() - 1];
-        let client = self.clients.remove(last_idx);
-        let first_idx = ws_indices[0];
-        self.clients.insert(first_idx, client);
-        self.apply_layout();
-        self.focus_top();
-    }
-
     // ── Workspaces ──────────────────────────────────────────────────────
 
     pub fn switch_workspace(&mut self, ws: usize) {
         if ws == self.current_ws || ws >= NUM_WORKSPACES { return; }
 
-        // unmap current workspace windows
+        // unmap current workspace windows, track as pending
         for c in &self.clients {
             if c.workspace == self.current_ws {
+                self.pending_unmaps.push(c.window);
                 self.conn.unmap_window(c.window).unwrap();
             }
         }
@@ -204,8 +219,8 @@ impl WM {
             c.workspace = ws;
         }
 
-        // if moving to a different workspace, unmap
         if ws != self.current_ws {
+            self.pending_unmaps.push(win);
             self.conn.unmap_window(win).unwrap();
             self.conn.flush().unwrap();
             self.focused = None;
@@ -216,107 +231,34 @@ impl WM {
         }
     }
 
-    // ── Floating ────────────────────────────────────────────────────────
+    // ── Fullscreen ──────────────────────────────────────────────────────
 
-    pub fn toggle_floating(&mut self) {
+    pub fn toggle_fullscreen(&mut self) {
         let Some(win) = self.focused else { return };
-        if let Some(c) = self.clients.iter_mut().find(|c| c.window == win) {
-            c.floating = !c.floating;
-            if c.floating {
-                // give floating window a reasonable centered position
-                let sw = self.screen_width as i32;
-                let sh = self.screen_height as i32;
-                c.w = (sw as u32) / 2;
-                c.h = (sh as u32) / 2;
-                c.x = sw / 4;
-                c.y = sh / 4;
-            }
-        }
-        self.apply_layout();
-    }
 
-    /// Move a window by mouse drag (dwm-style inner event loop)
-    pub fn drag_move(&mut self, win: Window, start_x: i16, start_y: i16) {
-        // mark as floating
-        if let Some(c) = self.clients.iter_mut().find(|c| c.window == win) {
-            c.floating = true;
-        }
-        self.apply_layout();
-
-        let geom = self.conn.get_geometry(win).unwrap().reply().unwrap();
-        let ox = geom.x as i32;
-        let oy = geom.y as i32;
-
-        self.conn.grab_pointer(
-            false, self.root,
-            EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION,
-            GrabMode::ASYNC, GrabMode::ASYNC,
-            0u32, 0u32, x11rb::CURRENT_TIME,
-        ).unwrap();
-        self.conn.flush().unwrap();
-
-        loop {
-            let ev = self.conn.wait_for_event().unwrap();
-            match ev {
-                Event::MotionNotify(e) => {
-                    let nx = ox + (e.root_x - start_x) as i32;
-                    let ny = oy + (e.root_y - start_y) as i32;
-                    self.conn.configure_window(win, &ConfigureWindowAux::new()
-                        .x(nx).y(ny)).unwrap();
-                    self.conn.flush().unwrap();
-                    // update stored geometry
-                    if let Some(c) = self.clients.iter_mut().find(|c| c.window == win) {
-                        c.x = nx; c.y = ny;
-                    }
+        let is_now_fullscreen = {
+            let Some(c) = self.clients.iter_mut().find(|c| c.window == win) else { return };
+            if c.fullscreen {
+                if let Some((x, y, w, h)) = c.pre_fs.take() {
+                    c.x = x; c.y = y; c.w = w; c.h = h;
                 }
-                Event::ButtonRelease(_) => break,
-                _ => {}
+                c.fullscreen = false;
+                false
+            } else {
+                c.pre_fs = Some((c.x, c.y, c.w, c.h));
+                c.fullscreen = true;
+                true
             }
-        }
+        };
 
-        self.conn.ungrab_pointer(x11rb::CURRENT_TIME).unwrap();
-        self.conn.flush().unwrap();
-    }
-
-    /// Resize a window by mouse drag (mod+right-click)
-    pub fn drag_resize(&mut self, win: Window, start_x: i16, start_y: i16) {
-        if let Some(c) = self.clients.iter_mut().find(|c| c.window == win) {
-            c.floating = true;
-        }
         self.apply_layout();
 
-        let geom = self.conn.get_geometry(win).unwrap().reply().unwrap();
-        let ow = geom.width as i32;
-        let oh = geom.height as i32;
-
-        self.conn.grab_pointer(
-            false, self.root,
-            EventMask::BUTTON_RELEASE | EventMask::POINTER_MOTION,
-            GrabMode::ASYNC, GrabMode::ASYNC,
-            0u32, 0u32, x11rb::CURRENT_TIME,
-        ).unwrap();
-        self.conn.flush().unwrap();
-
-        loop {
-            let ev = self.conn.wait_for_event().unwrap();
-            match ev {
-                Event::MotionNotify(e) => {
-                    let nw = (ow + (e.root_x - start_x) as i32).max(100) as u32;
-                    let nh = (oh + (e.root_y - start_y) as i32).max(100) as u32;
-                    self.conn.configure_window(win, &ConfigureWindowAux::new()
-                        .width(nw).height(nh)).unwrap();
-                    self.conn.flush().unwrap();
-                    if let Some(c) = self.clients.iter_mut().find(|c| c.window == win) {
-                        c.w = nw; c.h = nh;
-                    }
-                }
-                Event::ButtonRelease(_) => break,
-                _ => {}
-            }
+        if is_now_fullscreen {
+            self.conn.configure_window(win, &ConfigureWindowAux::new()
+                .stack_mode(StackMode::ABOVE)
+            ).unwrap();
+            self.conn.flush().unwrap();
         }
-
-        self.conn.ungrab_pointer(x11rb::CURRENT_TIME).unwrap();
-        self.conn.flush().unwrap();
     }
 
     // ── Bar ─────────────────────────────────────────────────────────────
@@ -337,7 +279,6 @@ impl WM {
     }
 
     fn get_window_title(&self, win: Window) -> String {
-        // try _NET_WM_NAME (UTF8)
         let net_name = self.intern_atom("_NET_WM_NAME");
         let utf8 = self.intern_atom("UTF8_STRING");
         if let Ok(cookie) = self.conn.get_property(false, win, net_name, utf8, 0, 256) {
@@ -347,7 +288,6 @@ impl WM {
                 }
             }
         }
-        // fall back to WM_NAME
         if let Ok(cookie) = self.conn.get_property(
             false, win, AtomEnum::WM_NAME, AtomEnum::STRING, 0, 256,
         ) {

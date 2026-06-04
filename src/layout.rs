@@ -2,11 +2,10 @@ use crate::client::Client;
 use crate::config::*;
 
 /// Compute tiled geometry for clients. Pure math — no X11 calls.
-/// Only operates on non-floating clients. Sets x/y/w/h on each.
+/// Skips fullscreen clients (they get handled separately).
 pub fn tile(clients: &mut [&mut Client], screen_w: u32, screen_h: u32) {
-    // filter to only tiled (non-floating) clients
     let tiled: Vec<usize> = clients.iter().enumerate()
-        .filter(|(_, c)| !c.floating)
+        .filter(|(_, c)| !c.fullscreen)
         .map(|(i, _)| i)
         .collect();
 
@@ -15,7 +14,6 @@ pub fn tile(clients: &mut [&mut Client], screen_w: u32, screen_h: u32) {
 
     let g = GAP;
     let bar = BAR_HEIGHT as u32;
-    // usable area starts below bar
     let sy = bar as i32 + g as i32;
     let sh = screen_h.saturating_sub(bar + 2 * g);
 

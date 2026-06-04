@@ -10,6 +10,7 @@ pub const XK_SPACE: u32  = 0x0020;
 pub const XK_J: u32      = 0x006a;
 pub const XK_K: u32      = 0x006b;
 pub const XK_C: u32      = 0x0063;
+pub const XK_F: u32      = 0x0066;
 pub const XK_Q: u32      = 0x0071;
 pub const XK_1: u32      = 0x0031;
 pub const XK_2: u32      = 0x0032;

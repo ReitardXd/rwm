@@ -3,7 +3,7 @@ use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
 use crate::config::*;
 
-/// Simple X11 core-font status bar (like dwm's drw)
+/// Simple X11 core-font status bar (drawing context struct)
 pub struct StatusBar {
     pub window: Window,
     gc_norm: Gcontext,
@@ -28,7 +28,7 @@ impl StatusBar {
         let font_info = conn.query_font(font).unwrap().reply().unwrap();
         let font_ascent = font_info.font_ascent as i16;
 
-        // create bar window (override_redirect so WM doesn't manage it)
+        // create bar window (override_redirect so Window manager doesnt manage it)
         let win = conn.generate_id().unwrap();
         conn.create_window(
             depth, win, root,
@@ -37,7 +37,7 @@ impl StatusBar {
             &CreateWindowAux::new()
                 .background_pixel(BAR_BG)
                 .override_redirect(1u32)
-                .event_mask(EventMask::EXPOSURE),
+                .event_mask(EventMask::EXPOSURE | EventMask::BUTTON_PRESS),
         ).unwrap();
 
         // GC for normal text (fg on bg)
@@ -70,13 +70,13 @@ impl StatusBar {
         let h = BAR_HEIGHT;
         let y = self.font_ascent + (h as i16 - self.font_ascent) / 2;
 
-        // clear entire bar
+        // clears the entire bar
         conn.poly_fill_rectangle(self.window, self.gc_norm, &[
             Rectangle { x: 0, y: 0, width: self.width, height: h },
         ]).unwrap();
 
         let mut x: i16 = 0;
-        let cell = (h as i16) + 4; // width per workspace label
+        let cell = (h as i16) + 4; //width per workspace 
 
         // workspace indicators
         for i in 0..NUM_WORKSPACES {
@@ -111,5 +111,15 @@ impl StatusBar {
         }
 
         conn.flush().unwrap();
+    }
+
+    /// Map a click x-coordinate on the bar to a workspace index (if any)
+    pub fn ws_from_click(&self, click_x: i16) -> Option<usize> {
+        let cell = BAR_HEIGHT as i16 + 4;
+        let total = cell * NUM_WORKSPACES as i16;
+        if click_x < 0 || click_x >= total {
+            return None;
+        }
+        Some((click_x / cell) as usize)
     }
 }
