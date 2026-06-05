@@ -9,7 +9,7 @@ pub struct Client {
     pub h: u32,
     pub fullscreen: bool,
     pub workspace: usize,
-    // saved geometry before fullscreen
+    // you can change this to check assign a size which it reverts to when you exit fullscreen
     pub pre_fs: Option<(i32, i32, u32, u32)>,
 }
 

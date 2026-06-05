@@ -78,7 +78,7 @@ impl StatusBar {
         let mut x: i16 = 0;
         let cell = (h as i16) + 4; //width per workspace 
 
-        // workspace indicators
+        // workspace numbering
         for i in 0..NUM_WORKSPACES {
             let label = format!(" {} ", i + 1);
             if i == current_ws {

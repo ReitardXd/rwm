@@ -125,7 +125,7 @@ impl WM {
         self.focus(ws_windows[prev_idx]);
     }
 
-    // ── Manage / Unmanage ───────────────────────────────────────────────
+    // ── Manage / Unmanage for workspace ───────────────────────────────────────────────
 
     pub fn manage(&mut self, win: Window) {
         if win == self.bar.window { return; }
@@ -305,6 +305,18 @@ impl WM {
     pub fn spawn(&self, cmd: &str) {
         use std::process::Command;
         let _ = Command::new(cmd).spawn();
+    }
+
+    /// Spawn a command with arguments (like dwm's {.v = (const char*[]){...}})
+    pub fn spawn_args(&self, cmd: &str, args: &[&str]) {
+        use std::process::Command;
+        let _ = Command::new(cmd).args(args).spawn();
+    }
+
+    /// Run a shell command string (like dwm's SHCMD macro)
+    pub fn spawn_sh(&self, cmd: &str) {
+        use std::process::Command;
+        let _ = Command::new("sh").args(["-c", cmd]).spawn();
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

@@ -5,13 +5,24 @@ use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
 
 // ── Keysym constants (X11/keysymdef.h) ──────────────────────────────────────
-pub const XK_RETURN: u32 = 0xff0d;
-pub const XK_SPACE: u32  = 0x0020;
+// letters
+pub const XK_B: u32      = 0x0062;
+pub const XK_C: u32      = 0x0063;
+pub const XK_D: u32      = 0x0064;
+pub const XK_E: u32      = 0x0065;
+pub const XK_F: u32      = 0x0066;
+pub const XK_H: u32      = 0x0068;
 pub const XK_J: u32      = 0x006a;
 pub const XK_K: u32      = 0x006b;
-pub const XK_C: u32      = 0x0063;
-pub const XK_F: u32      = 0x0066;
+pub const XK_L: u32      = 0x006c;
+pub const XK_M: u32      = 0x006d;
+pub const XK_N: u32      = 0x006e;
+pub const XK_P: u32      = 0x0070;
 pub const XK_Q: u32      = 0x0071;
+pub const XK_R: u32      = 0x0072;
+pub const XK_W: u32      = 0x0077;
+
+// numbers
 pub const XK_1: u32      = 0x0031;
 pub const XK_2: u32      = 0x0032;
 pub const XK_3: u32      = 0x0033;
@@ -22,7 +33,28 @@ pub const XK_7: u32      = 0x0037;
 pub const XK_8: u32      = 0x0038;
 pub const XK_9: u32      = 0x0039;
 
-// modifier masks (raw values matching ModMask/KeyButMask internals)
+// special keys
+pub const XK_RETURN: u32    = 0xff0d;
+pub const XK_SPACE: u32     = 0x0020;
+pub const XK_TAB: u32       = 0xff09;
+pub const XK_BACKSPACE: u32 = 0xff08;
+pub const XK_MINUS: u32     = 0x002d;
+pub const XK_EQUAL: u32     = 0x003d;
+pub const XK_PRINT: u32     = 0xff61;
+
+// XF86 media keys
+pub const XF86XK_AUDIO_MUTE: u32          = 0x1008ff12;
+pub const XF86XK_AUDIO_LOWER_VOLUME: u32  = 0x1008ff11;
+pub const XF86XK_AUDIO_RAISE_VOLUME: u32  = 0x1008ff13;
+pub const XF86XK_AUDIO_PLAY: u32          = 0x1008ff14;
+pub const XF86XK_AUDIO_STOP: u32          = 0x1008ff15;
+pub const XF86XK_AUDIO_PREV: u32          = 0x1008ff16;
+pub const XF86XK_AUDIO_NEXT: u32          = 0x1008ff17;
+pub const XF86XK_MON_BRIGHTNESS_UP: u32   = 0x1008ff02;
+pub const XF86XK_MON_BRIGHTNESS_DOWN: u32 = 0x1008ff03;
+pub const XF86XK_AUDIO_MIC_MUTE: u32      = 0x1008ffb2;
+
+// modifier masks
 pub const SHIFT: u16    = 1 << 0;
 pub const NUMLOCK: u16  = 1 << 4; // Mod2
 pub const CAPSLOCK: u16 = 1 << 1; // Lock
@@ -63,7 +95,7 @@ pub fn keycode_to_keysym(conn: &RustConnection, keycode: Keycode) -> u32 {
 /// Grab a key on root, covering NumLock/CapsLock combos
 pub fn grab_key(conn: &RustConnection, root: Window, modmask: u16, keysym: u32) {
     let Some(kc) = keysym_to_keycode(conn, keysym) else {
-        eprintln!("rwm: warning: no keycode for keysym 0x{:04x}", keysym);
+        eprintln!("rwm: warning: no keycode for keysym 0x{:08x}", keysym);
         return;
     };
     for extra in [0, NUMLOCK, CAPSLOCK, NUMLOCK | CAPSLOCK] {

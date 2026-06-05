@@ -11,10 +11,7 @@ use x11rb::protocol::xproto::*;
 use x11rb::protocol::Event;
 
 use config::*;
-use keys::{
-    XK_RETURN, XK_J, XK_K, XK_C, XK_F, XK_Q,
-    XK_1, XK_9, SHIFT,
-};
+use keys::*;
 use bar::StatusBar;
 use wm::WM;
 
@@ -41,13 +38,51 @@ fn main() {
         .unwrap().check()
         .expect("another WM is already running");
 
-    // ── Grab keybindings ────────────────────────────────────────────
-    keys::grab_key(&conn, root, MODKEY, XK_RETURN);
-    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_C);
-    keys::grab_key(&conn, root, MODKEY, XK_J);
-    keys::grab_key(&conn, root, MODKEY, XK_K);
-    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_Q);
-    keys::grab_key(&conn, root, MODKEY, XK_F);
+    // ── Grab keybindings (matching dwm config.h) ────────────────────
+
+    // core wm controls
+    keys::grab_key(&conn, root, MODKEY, XK_RETURN);              // terminal
+    keys::grab_key(&conn, root, MODKEY, XK_D);                   // dmenu
+    keys::grab_key(&conn, root, MODKEY, XK_Q);                   // kill window
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_Q);           // sysact / quit wm
+    keys::grab_key(&conn, root, MODKEY, XK_J);                   // focus next
+    keys::grab_key(&conn, root, MODKEY, XK_K);                   // focus prev
+    keys::grab_key(&conn, root, MODKEY, XK_F);                   // fullscreen
+    keys::grab_key(&conn, root, MODKEY, XK_TAB);                 // last workspace
+    keys::grab_key(&conn, root, MODKEY, XK_BACKSPACE);           // sysact
+
+    // app launchers
+    keys::grab_key(&conn, root, MODKEY, XK_W);                   // browser
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_W);           // nmtui
+    keys::grab_key(&conn, root, MODKEY, XK_R);                   // file manager
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_R);           // htop
+    keys::grab_key(&conn, root, MODKEY, XK_N);                   // nvim wiki
+    keys::grab_key(&conn, root, MODKEY, XK_M);                   // ncmpcpp
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_M);           // mute toggle
+    keys::grab_key(&conn, root, MODKEY, XK_P);                   // mpc toggle
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_P);           // mpc pause
+
+    // volume
+    keys::grab_key(&conn, root, MODKEY, XK_MINUS);               // vol -5%
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_MINUS);       // vol -15%
+    keys::grab_key(&conn, root, MODKEY, XK_EQUAL);               // vol +5%
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_EQUAL);       // vol +15%
+
+    // screenshot
+    keys::grab_key(&conn, root, 0, XK_PRINT);                    // full screenshot
+    keys::grab_key(&conn, root, SHIFT, XK_PRINT);                // maimpick
+
+    // XF86 media keys (no modifier)
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_MUTE);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_LOWER_VOLUME);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_RAISE_VOLUME);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_PLAY);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_STOP);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_PREV);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_NEXT);
+    keys::grab_key(&conn, root, 0, XF86XK_MON_BRIGHTNESS_UP);
+    keys::grab_key(&conn, root, 0, XF86XK_MON_BRIGHTNESS_DOWN);
+    keys::grab_key(&conn, root, 0, XF86XK_AUDIO_MIC_MUTE);
 
     // workspace keys: Mod4+1..9 and Mod4+Shift+1..9
     for keysym in XK_1..=XK_9 {
@@ -63,6 +98,7 @@ fn main() {
     eprintln!("rwm: running");
 
     let mut wm = WM::new(conn, root, screen_width, screen_height, bar);
+    let mut last_ws: usize = 0; // for Super+Tab
     wm.update_bar();
 
     // ── Event loop ──────────────────────────────────────────────────
@@ -74,7 +110,6 @@ fn main() {
             }
 
             Event::UnmapNotify(e) => {
-                // ignore unmaps we caused (workspace switch)
                 if !wm.consume_pending_unmap(e.window) {
                     wm.unmanage(e.window);
                 }
@@ -107,10 +142,11 @@ fn main() {
             }
 
             Event::ButtonPress(e) => {
-                // clicking on the bar workspace area → switch workspace
                 if e.event == wm.bar.window {
                     if let Some(ws) = wm.bar.ws_from_click(e.event_x) {
+                        let prev = wm.current_ws;
                         wm.switch_workspace(ws);
+                        last_ws = prev;
                     }
                 }
             }
@@ -119,21 +155,67 @@ fn main() {
                 let keysym = keys::keycode_to_keysym(&wm.conn, e.detail);
                 let mods = keys::clean_modifiers(e.state);
                 let has_shift = mods & SHIFT != 0;
+                let modkey_only = mods == MODKEY;
+                let mod_shift = mods == MODKEY | SHIFT;
 
                 match keysym {
-                    XK_RETURN if !has_shift => wm.spawn(TERMINAL),
-                    XK_C if has_shift       => wm.kill_focused(),
-                    XK_J if !has_shift      => wm.focus_next(),
-                    XK_K if !has_shift      => wm.focus_prev(),
-                    XK_F if !has_shift      => wm.toggle_fullscreen(),
-                    XK_Q if has_shift       => { eprintln!("rwm: quitting"); break; }
+                    // ── Core WM ─────────────────────────────────────
+                    XK_RETURN if modkey_only => wm.spawn(TERMINAL),
+                    XK_Q if modkey_only      => wm.kill_focused(),
+                    XK_Q if mod_shift        => { eprintln!("rwm: quitting"); break; }
+                    XK_J if modkey_only      => wm.focus_next(),
+                    XK_K if modkey_only      => wm.focus_prev(),
+                    XK_D if modkey_only      => wm.spawn(LAUNCHER),
+                    XK_F if modkey_only      => wm.toggle_fullscreen(),
+                    XK_TAB if modkey_only    => {
+                        let prev = wm.current_ws;
+                        wm.switch_workspace(last_ws);
+                        last_ws = prev;
+                    }
+                    XK_BACKSPACE if modkey_only => wm.spawn("sysact"),
 
+                    // ── App launchers ───────────────────────────────
+                    XK_W if modkey_only      => wm.spawn(BROWSER),
+                    XK_W if mod_shift        => wm.spawn_args(TERMINAL, &["nmtui"]),
+                    XK_R if modkey_only      => wm.spawn_args(TERMINAL, &["lfub"]),
+                    XK_R if mod_shift        => wm.spawn_args(TERMINAL, &["htop"]),
+                    XK_N if modkey_only      => wm.spawn_args(TERMINAL, &["nvim", "-c", "VimwikiIndex"]),
+                    XK_M if modkey_only      => wm.spawn_args(TERMINAL, &["ncmpcpp"]),
+                    XK_M if mod_shift        => wm.spawn_sh("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),
+                    XK_P if modkey_only      => wm.spawn_args("mpc", &["toggle"]),
+                    XK_P if mod_shift        => wm.spawn_sh("mpc pause; pauseallmpv"),
+
+                    // ── Volume (Super+minus/equal) ──────────────────
+                    XK_MINUS if modkey_only  => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),
+                    XK_MINUS if mod_shift    => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 15%-"),
+                    XK_EQUAL if modkey_only  => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"),
+                    XK_EQUAL if mod_shift    => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 15%+"),
+
+                    // ── Screenshot ──────────────────────────────────
+                    XK_PRINT if mods == 0    => wm.spawn_sh("maim pic-full-$(date '+%y%m%d-%H%M-%S').png"),
+                    XK_PRINT if mods == SHIFT => wm.spawn("maimpick"),
+
+                    // ── XF86 media keys (no modifier) ───────────────
+                    XF86XK_AUDIO_MUTE if mods == 0          => wm.spawn_sh("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),
+                    XF86XK_AUDIO_LOWER_VOLUME if mods == 0  => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 3%-"),
+                    XF86XK_AUDIO_RAISE_VOLUME if mods == 0  => wm.spawn_sh("wpctl set-volume @DEFAULT_AUDIO_SINK@ 3%+"),
+                    XF86XK_AUDIO_PLAY if mods == 0          => wm.spawn_args("mpc", &["toggle"]),
+                    XF86XK_AUDIO_STOP if mods == 0          => wm.spawn_args("mpc", &["stop"]),
+                    XF86XK_AUDIO_PREV if mods == 0          => wm.spawn_args("mpc", &["prev"]),
+                    XF86XK_AUDIO_NEXT if mods == 0          => wm.spawn_args("mpc", &["next"]),
+                    XF86XK_MON_BRIGHTNESS_UP if mods == 0   => wm.spawn_args("xbacklight", &["-inc", "15"]),
+                    XF86XK_MON_BRIGHTNESS_DOWN if mods == 0 => wm.spawn_args("xbacklight", &["-dec", "15"]),
+                    XF86XK_AUDIO_MIC_MUTE if mods == 0      => wm.spawn_sh("pactl set-source-mute @DEFAULT_SOURCE@ toggle"),
+
+                    // ── Workspaces ──────────────────────────────────
                     k @ XK_1..=XK_9 => {
                         let ws = (k - XK_1) as usize;
                         if has_shift {
                             wm.move_to_workspace(ws);
                         } else {
+                            let prev = wm.current_ws;
                             wm.switch_workspace(ws);
+                            last_ws = prev;
                         }
                     }
 
