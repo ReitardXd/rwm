@@ -135,6 +135,10 @@ src/
 └── wm.rs        core WM: manage, focus, kill, workspaces, fullscreen
 ```
 
+## Example Screenshot
+<img width="1920" height="1080" alt="pic-full-260605-2237-10" src="https://github.com/user-attachments/assets/a18c2524-6155-407c-8b80-b92751f7b65b" />
+
+
 ## Dependencies
 
 - Rust 2024 edition
