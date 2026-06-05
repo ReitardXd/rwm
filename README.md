@@ -2,7 +2,6 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
-No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
 
 ## Features
 
@@ -139,7 +138,7 @@ src/
 ## Dependencies
 
 - Rust 2024 edition
-- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings (no C deps)
+- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings 
 
 ## License
 
