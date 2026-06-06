@@ -4,7 +4,7 @@ use x11rb::connection::Connection;
 use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
 
-// ── Keysym constants (X11/keysymdef.h) ──────────────────────────────────────
+// ── Keysym constants (X11/keysymdef.h) for Keyboard inputs ──────────────────────────────────────
 // letters
 pub const XK_B: u32      = 0x0062;
 pub const XK_C: u32      = 0x0063;
@@ -95,7 +95,7 @@ pub fn keycode_to_keysym(conn: &RustConnection, keycode: Keycode) -> u32 {
 /// Grab a key on root, covering NumLock/CapsLock combos
 pub fn grab_key(conn: &RustConnection, root: Window, modmask: u16, keysym: u32) {
     let Some(kc) = keysym_to_keycode(conn, keysym) else {
-        eprintln!("rwm: warning: no keycode for keysym 0x{:08x}", keysym);
+        eprintln!("rwm: warning! : no keycode for keysym 0x{:08x}", keysym);
         return;
     };
     for extra in [0, NUMLOCK, CAPSLOCK, NUMLOCK | CAPSLOCK] {

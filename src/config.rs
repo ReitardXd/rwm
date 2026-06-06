@@ -1,5 +1,6 @@
 // ── User configuration ──────────────────────────────────────────────────────
-// Configs i am going to use you can edit it if you want just know the hex value for the input
+// Configs i am currently using you can create your own const values and add  configs to them to
+// customise them as you please 
 pub const MODKEY: u16       = 1 << 6;  // Mod4 (Super)
 pub const TERMINAL: &str    = "alacritty"; // add whatever terminal you like here i use alacritty  
 pub const LAUNCHER: &str    = "dmenu_run"; // app launcher (Super+d)

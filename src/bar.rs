@@ -4,6 +4,7 @@ use x11rb::protocol::xproto::*;
 use crate::config::*;
 
 /// Simple X11 core-font status bar (drawing context struct)
+// Allows you to view what is the newest activity in the current worskacep 
 pub struct StatusBar {
     pub window: Window,
     gc_norm: Gcontext,

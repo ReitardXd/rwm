@@ -1,7 +1,8 @@
 use crate::client::Client;
 use crate::config::*;
 
-/// Compute tiled geometry for clients. Pure math — no X11 calls.
+/// Compute tiled geometry for clients. You can change this if you want to have various difference 
+/// effects like dwindle , fibonacci etc 
 /// Skips fullscreen clients (they get handled separately).
 pub fn tile(clients: &mut [&mut Client], screen_w: u32, screen_h: u32) {
     let tiled: Vec<usize> = clients.iter().enumerate()

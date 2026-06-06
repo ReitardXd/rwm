@@ -4,7 +4,8 @@ mod client;
 mod layout;
 mod bar;
 mod wm;
-
+//you can add more files here if you wish to make it more feature rich but this is what i prefer
+//since i mainly use dwm specifically luke smith's configs 
 use x11rb::connection::Connection;
 use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
@@ -38,7 +39,7 @@ fn main() {
         .unwrap().check()
         .expect("another WM is already running");
 
-    // ── Grab keybindings (matching dwm config.h) ────────────────────
+    // ── Grab keybindings ────────────────────
 
     // core wm controls
     keys::grab_key(&conn, root, MODKEY, XK_RETURN);              // terminal
