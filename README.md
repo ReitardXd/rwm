@@ -1,4 +1,4 @@
-# rwm
+# rwm (Rei's Window Manager)
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
