@@ -140,9 +140,13 @@ src/
 
 
 ## Dependencies
-
+- Dmenu - https://tools.suckless.org/dmenu/ 
 - Rust 2024 edition
 - [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings 
+
+
+## Future Updates
+I maybe switching dmenu to a dynamic user-defined menu written by me.
 
 ## License
 
