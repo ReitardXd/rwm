@@ -43,6 +43,7 @@ fn main() {
 
     // core wm controls
     keys::grab_key(&conn, root, MODKEY, XK_RETURN);              // terminal
+    keys::grab_key(&conn, root, MODKEY, XK_KP_ENTER);           // terminal (numpad enter)
     keys::grab_key(&conn, root, MODKEY, XK_D);                   // dmenu
     keys::grab_key(&conn, root, MODKEY, XK_Q);                   // kill window
     keys::grab_key(&conn, root, MODKEY | SHIFT, XK_Q);           // sysact / quit wm
@@ -162,6 +163,7 @@ fn main() {
                 match keysym {
                     // ── Core WM ─────────────────────────────────────
                     XK_RETURN if modkey_only => wm.spawn(TERMINAL),
+                    XK_KP_ENTER if modkey_only => wm.spawn(TERMINAL),
                     XK_Q if modkey_only      => wm.kill_focused(),
                     XK_Q if mod_shift        => { eprintln!("rwm: quitting"); break; }
                     XK_J if modkey_only      => wm.focus_next(),

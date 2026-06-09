@@ -35,6 +35,7 @@ pub const XK_9: u32      = 0x0039;
 
 // special keys
 pub const XK_RETURN: u32    = 0xff0d;
+pub const XK_KP_ENTER: u32  = 0xff8d;
 pub const XK_SPACE: u32     = 0x0020;
 pub const XK_TAB: u32       = 0xff09;
 pub const XK_BACKSPACE: u32 = 0xff08;

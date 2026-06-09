@@ -1,6 +1,7 @@
 [Desktop Entry]
 Name=rwm
 Comment=Minimal tiling window manager in Rust
-Exec=~/.local/src/rwm
+#you must add your own path here 
+Exec=/path/to/rwm 
 Type=Application
 DesktopNames=rwm
