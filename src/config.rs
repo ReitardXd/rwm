@@ -5,6 +5,7 @@ pub const MODKEY: u16       = 1 << 6;  // Mod4 (Super)
 pub const TERMINAL: &str    = "alacritty"; // add whatever terminal you like here i use alacritty  
 pub const LAUNCHER: &str    = "dmenu_run"; // app launcher (Super+d)
 pub const BROWSER: &str     = "librewolf"; //web browser (Super+w)
+pub const WALLPAPER: &str   = "/home/reitard/Projects/mp/rwm/miku.png";
 pub const EDITOR: &str      = "emacs";
 pub const GAP: u32          = 8; //Gap between windows
 pub const BAR_HEIGHT: u16   = 20; 

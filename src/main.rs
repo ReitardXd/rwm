@@ -97,6 +97,14 @@ fn main() {
     // ── Create bar ──────────────────────────────────────────────────
     let bar = StatusBar::new(&conn, root, screen_width, depth, visual);
 
+    // ── Set wallpaper ───────────────────────────────────────────────
+    let _ = std::process::Command::new("xwallpaper")
+        .args(["--zoom", WALLPAPER])
+        .spawn();
+
+    // ── Start compositor ────────────────────────────────────────────
+    let _ = std::process::Command::new("picom").spawn();
+
     eprintln!("rwm: running");
 
     let mut wm = WM::new(conn, root, screen_width, screen_height, bar);
