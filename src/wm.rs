@@ -15,6 +15,7 @@ pub struct WM {
     pub clients: Vec<Client>,
     pub focused: Option<Window>,
     pub current_ws: usize,
+    pub mfact: f32,
     pub bar: StatusBar,
     /// Windows we've unmapped ourselves (workspace switch).
     /// UnmapNotify for these should be ignored.
@@ -30,7 +31,7 @@ impl WM {
         Self {
             conn, root, screen_width, screen_height,
             clients: vec![], focused: None, current_ws: 0,
-            bar, pending_unmaps: vec![],
+            mfact: 0.55, bar, pending_unmaps: vec![],
         }
     }
 
@@ -44,7 +45,7 @@ impl WM {
             .filter(|c| c.workspace == self.current_ws)
             .collect();
 
-        layout::tile(&mut ws_clients, sw, sh);
+        layout::tile(&mut ws_clients, sw, sh, self.mfact);
 
         for c in &ws_clients {
             if c.fullscreen {
@@ -259,6 +260,13 @@ impl WM {
             ).unwrap();
             self.conn.flush().unwrap();
         }
+    }
+
+    // ── Master factor resize ────────────────────────────────────────
+
+    pub fn adjust_mfact(&mut self, delta: f32) {
+        self.mfact = (self.mfact + delta).clamp(0.05, 0.95);
+        self.apply_layout();
     }
 
     // ── Bar ─────────────────────────────────────────────────────────────

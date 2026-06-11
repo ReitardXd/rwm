@@ -50,6 +50,8 @@ fn main() {
     keys::grab_key(&conn, root, MODKEY, XK_J);                   // focus next
     keys::grab_key(&conn, root, MODKEY, XK_K);                   // focus prev
     keys::grab_key(&conn, root, MODKEY, XK_F);                   // fullscreen
+    keys::grab_key(&conn, root, MODKEY, XK_H);                   // shrink master window
+    keys::grab_key(&conn, root, MODKEY, XK_L);                   // grow master window
     keys::grab_key(&conn, root, MODKEY, XK_TAB);                 // last workspace
     keys::grab_key(&conn, root, MODKEY, XK_BACKSPACE);           // sysact
 
@@ -59,7 +61,8 @@ fn main() {
     keys::grab_key(&conn, root, MODKEY, XK_R);                   // file manager
     keys::grab_key(&conn, root, MODKEY | SHIFT, XK_R);           // htop
     keys::grab_key(&conn, root, MODKEY, XK_N);                   // nvim wiki
-    keys::grab_key(&conn, root, MODKEY, XK_M);                   // ncmpcpp
+    keys::grab_key(&conn, root, MODKEY, XK_M);                   // ncmpcpp only works in terminal
+                                                                 // you can fix it if you want to 
     keys::grab_key(&conn, root, MODKEY | SHIFT, XK_M);           // mute toggle
     keys::grab_key(&conn, root, MODKEY, XK_P);                   // mpc toggle
     keys::grab_key(&conn, root, MODKEY | SHIFT, XK_P);           // mpc pause
@@ -178,6 +181,8 @@ fn main() {
                     XK_K if modkey_only      => wm.focus_prev(),
                     XK_D if modkey_only      => wm.spawn(LAUNCHER),
                     XK_F if modkey_only      => wm.toggle_fullscreen(),
+                    XK_H if modkey_only      => wm.adjust_mfact(-0.05),
+                    XK_L if modkey_only      => wm.adjust_mfact(0.05),
                     XK_TAB if modkey_only    => {
                         let prev = wm.current_ws;
                         wm.switch_workspace(last_ws);

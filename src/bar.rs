@@ -2,9 +2,8 @@ use x11rb::connection::Connection;
 use x11rb::rust_connection::RustConnection;
 use x11rb::protocol::xproto::*;
 use crate::config::*;
-
 /// Simple X11 core-font status bar (drawing context struct)
-// Allows you to view what is the newest activity in the current worskacep 
+// Allows you to view what is the newest activity in the current workspace
 pub struct StatusBar {
     pub window: Window,
     gc_norm: Gcontext,
@@ -24,7 +23,6 @@ impl StatusBar {
         // open font
         let font = conn.generate_id().unwrap();
         conn.open_font(font, FONT_NAME.as_bytes()).unwrap();
-
         // query font metrics for text baseline
         let font_info = conn.query_font(font).unwrap().reply().unwrap();
         let font_ascent = font_info.font_ascent as i16;
@@ -59,7 +57,6 @@ impl StatusBar {
 
         Self { window: win, gc_norm, gc_sel, width: screen_width, font_ascent }
     }
-
     /// Redraw the bar: workspace indicators + window title
     pub fn draw(
         &self,
