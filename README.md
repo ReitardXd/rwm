@@ -1,11 +1,13 @@
-# rwm (Rei's Window Manager)
+# rwm
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
+No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
 
 ## Features
 
 - **Master-stack tiling** — first window gets left half, rest stack on the right
+- **Resizable master** — `Super+h/l` shrinks/grows the master area (like dwm's mfact)
 - **Focus follows mouse** — EnterNotify driven, no click-to-focus
 - **Focus cycling** — `Super+j/k` cycles focus without rearranging windows
 - **Kill focused window** — graceful `WM_DELETE_WINDOW`, falls back to `XKillClient`
@@ -13,6 +15,8 @@ A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 - **9 workspaces** — switch with `Super+1..9`, move windows with `Super+Shift+1..9`, or click the bar
 - **Clickable status bar** — workspace indicators + focused window title
 - **Fullscreen toggle** — `Super+f`, covers entire screen including bar
+- **Wallpaper** — auto-set via `xwallpaper` on startup (configurable path)
+- **Compositor** — picom launched on startup for transparency
 - **App launchers** — dmenu, browser, file manager, htop, ncmpcpp, etc.
 - **Media keys** — volume, brightness, mpc playback, mute, screenshots
 - **Last workspace** — `Super+Tab` toggles between current and previous workspace
@@ -29,6 +33,8 @@ A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 | `Super + Shift + q` | Quit rwm |
 | `Super + j` | Focus next window |
 | `Super + k` | Focus previous window |
+| `Super + h` | Shrink master area |
+| `Super + l` | Grow master area |
 | `Super + f` | Toggle fullscreen |
 | `Super + Tab` | Switch to last workspace |
 | `Super + Backspace` | sysact |
@@ -114,6 +120,7 @@ Edit constants in `src/config.rs`:
 pub const TERMINAL: &str    = "alacritty";
 pub const LAUNCHER: &str    = "dmenu_run";
 pub const BROWSER: &str     = "librewolf";
+pub const WALLPAPER: &str   = "/path/to/wallpaper.png";
 pub const GAP: u32          = 8;
 pub const BAR_HEIGHT: u16   = 20;
 pub const NUM_WORKSPACES: usize = 9;
@@ -122,32 +129,32 @@ pub const BAR_FG: u32      = 0xbbbbbb;
 pub const BAR_SEL_BG: u32  = 0x005577;
 ```
 
+The master area defaults to 55% width and can be adjusted at runtime with `Super+h`/`Super+l`.
+
 ## Project Structure
 
 ```
 src/
-├── main.rs      entry point, event loop, keybinding dispatch
+├── main.rs      entry point, event loop, keybinding dispatch, startup (wallpaper, picom)
 ├── config.rs    all user-tunable constants (like dwm's config.h)
 ├── keys.rs      keysym constants, XF86 media keys, keycode translation
 ├── client.rs    per-window state: geometry, fullscreen, workspace
-├── layout.rs    pure-geometry tiling math (no X11 calls)
+├── layout.rs    pure-geometry tiling math with adjustable mfact (no X11 calls)
 ├── bar.rs       status bar: clickable workspace indicators + window title
-└── wm.rs        core WM: manage, focus, kill, workspaces, fullscreen
+└── wm.rs        core WM: manage, focus, kill, workspaces, fullscreen, mfact
 ```
 
-## Example Screenshot
-<img width="1920" height="1080" alt="pic-full-260605-2237-10" src="https://github.com/user-attachments/assets/a18c2524-6155-407c-8b80-b92751f7b65b" />
-
-
 ## Dependencies
-- Dmenu - https://tools.suckless.org/dmenu/ 
-- Rust 2024 edition
-- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings 
 
+- Rust 2024 edition
+- [`x11rb`](https://crates.io/crates/x11rb) 0.13 — pure Rust X11 bindings (no C deps)
+- `xwallpaper` — wallpaper (runtime)
+- `picom` — compositor (runtime)
+- `maim` — screenshots (runtime)
 
 ## Future Updates
 I maybe switching dmenu to a dynamic user-defined menu written by me.
-
+Also since its not a desktop env a lot of software might not work on here largely because i havent made fixes for them for example i am not able to use excalidraw on here which is basically a whiteboard tool
 ## License
 
 This project is licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.
