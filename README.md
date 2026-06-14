@@ -2,8 +2,6 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
-No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
-
 ## Features
 
 - **Master-stack tiling** — first window gets left half, rest stack on the right
@@ -153,8 +151,14 @@ src/
 - `maim` — screenshots (runtime)
 
 ## Future Updates
-I maybe switching dmenu to a dynamic user-defined menu written by me.
-Also since its not a desktop env a lot of software might not work on here largely because i havent made fixes for them for example i am not able to use excalidraw on here which is basically a whiteboard tool
+1.I maybe switching dmenu to a dynamic user-defined menu written by me.
+2.Script to automate the install 
+3.Fixing scaling and positioning issues with software like steam , excalidraw etc.
+
+## NOTE
+Also since its not a desktop env a lot of software might not work on here largely because i havent made fixes for them for example i am not able to use excalidraw on here which is basically a whiteboard tool this is largely a dimensions issue
+Please feel free to email me or open a PR regarding any bugs that you are currently facing ill try my best to fix them.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 — see [LICENSE](LICENSE) for details.

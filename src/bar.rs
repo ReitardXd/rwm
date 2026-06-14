@@ -11,7 +11,6 @@ pub struct StatusBar {
     width: u16,
     font_ascent: i16,
 }
-
 impl StatusBar {
     pub fn new(
         conn: &RustConnection,
@@ -38,13 +37,11 @@ impl StatusBar {
                 .override_redirect(1u32)
                 .event_mask(EventMask::EXPOSURE | EventMask::BUTTON_PRESS),
         ).unwrap();
-
         // GC for normal text (fg on bg)
         let gc_norm = conn.generate_id().unwrap();
         conn.create_gc(gc_norm, win, &CreateGCAux::new()
             .foreground(BAR_FG).background(BAR_BG).font(font)
         ).unwrap();
-
         // GC for selected workspace (sel_fg on sel_bg)
         let gc_sel = conn.generate_id().unwrap();
         conn.create_gc(gc_sel, win, &CreateGCAux::new()
