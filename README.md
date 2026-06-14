@@ -10,11 +10,11 @@ A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 - **Focus cycling** — `Super+j/k` cycles focus without rearranging windows
 - **Kill focused window** — graceful `WM_DELETE_WINDOW`, falls back to `XKillClient`
 - **Gaps** — configurable pixel gaps between windows and screen edges
-- **9 workspaces** — switch with `Super+1..9`, move windows with `Super+Shift+1..9`, or click the bar
+- **9 workspaces** — switch with `Super+1..9`, move windows with `Super+Shift+1..9`, or click the numbered icon
 - **Clickable status bar** — workspace indicators + focused window title
 - **Fullscreen toggle** — `Super+f`, covers entire screen including bar
 - **Wallpaper** — auto-set via `xwallpaper` on startup (configurable path)
-- **Compositor** — picom launched on startup for transparency
+- **Compositor** — picom launched on startup for transparency (you can remove this if you want to will still work either way)
 - **App launchers** — dmenu, browser, file manager, htop, ncmpcpp, etc.
 - **Media keys** — volume, brightness, mpc playback, mute, screenshots
 - **Last workspace** — `Super+Tab` toggles between current and previous workspace
@@ -151,9 +151,9 @@ src/
 - `maim` — screenshots (runtime)
 
 ## Future Updates
-1.I maybe switching dmenu to a dynamic user-defined menu written by me.
-2.Script to automate the install 
-3.Fixing scaling and positioning issues with software like steam , excalidraw etc.
+- 1.I maybe switching dmenu to a dynamic user-defined menu written by me.
+- 2.Script to automate the install 
+- 3.Fixing scaling and positioning issues with software like steam , excalidraw etc.
 
 ## NOTE
 Also since its not a desktop env a lot of software might not work on here largely because i havent made fixes for them for example i am not able to use excalidraw on here which is basically a whiteboard tool this is largely a dimensions issue
