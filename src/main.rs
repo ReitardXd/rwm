@@ -49,6 +49,8 @@ fn main() {
     keys::grab_key(&conn, root, MODKEY | SHIFT, XK_Q);           // sysact / quit wm
     keys::grab_key(&conn, root, MODKEY, XK_J);                   // focus next
     keys::grab_key(&conn, root, MODKEY, XK_K);                   // focus prev
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_J);           // swap next
+    keys::grab_key(&conn, root, MODKEY | SHIFT, XK_K);           // swap prev
     keys::grab_key(&conn, root, MODKEY, XK_F);                   // fullscreen
     keys::grab_key(&conn, root, MODKEY, XK_H);                   // shrink master window
     keys::grab_key(&conn, root, MODKEY, XK_L);                   // grow master window
@@ -179,6 +181,8 @@ fn main() {
                     XK_Q if mod_shift        => { eprintln!("rwm: quitting"); break; }
                     XK_J if modkey_only      => wm.focus_next(),
                     XK_K if modkey_only      => wm.focus_prev(),
+                    XK_J if mod_shift        => wm.swap_next(),
+                    XK_K if mod_shift        => wm.swap_prev(),
                     XK_D if modkey_only      => wm.spawn(LAUNCHER),
                     XK_F if modkey_only      => wm.toggle_fullscreen(),
                     XK_H if modkey_only      => wm.adjust_mfact(-0.05),
@@ -242,8 +246,8 @@ fn main() {
             Event::ConfigureRequest(e) => {
                 let aux = ConfigureWindowAux::from_configure_request(&e)
                     .sibling(None).stack_mode(None);
-                wm.conn.configure_window(e.window, &aux).unwrap();
-                wm.conn.flush().unwrap();
+                let _ = wm.conn.configure_window(e.window, &aux);
+                let _ = wm.conn.flush();
             }
 
             _ => {}

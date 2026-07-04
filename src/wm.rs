@@ -49,19 +49,19 @@ impl WM {
 
         for c in &ws_clients {
             if c.fullscreen {
-                self.conn.configure_window(c.window, &ConfigureWindowAux::new()
+                let _ = self.conn.configure_window(c.window, &ConfigureWindowAux::new()
                     .x(0).y(0).width(sw).height(sh)
                     .border_width(0u32)
                     .stack_mode(StackMode::ABOVE)
-                ).unwrap();
+                );
             } else {
-                self.conn.configure_window(c.window, &ConfigureWindowAux::new()
+                let _ = self.conn.configure_window(c.window, &ConfigureWindowAux::new()
                     .x(c.x).y(c.y).width(c.w).height(c.h)
                     .border_width(0u32)
-                ).unwrap();
+                );
             }
         }
-        self.conn.flush().unwrap();
+        let _ = self.conn.flush();
         self.update_bar();
     }
 
@@ -73,13 +73,12 @@ impl WM {
                 prev, &ChangeWindowAttributesAux::new().border_pixel(BORDER_UNFOCUSED),
             );
         }
-        self.conn.set_input_focus(InputFocus::POINTER_ROOT, win, x11rb::CURRENT_TIME)
-            .unwrap();
+        let _ = self.conn.set_input_focus(InputFocus::POINTER_ROOT, win, x11rb::CURRENT_TIME);
         let _ = self.conn.change_window_attributes(
             win, &ChangeWindowAttributesAux::new().border_pixel(BORDER_FOCUSED),
         );
         self.focused = Some(win);
-        self.conn.flush().unwrap();
+        let _ = self.conn.flush();
         self.update_bar();
     }
 
@@ -91,9 +90,8 @@ impl WM {
             self.focus(w);
         } else {
             self.focused = None;
-            self.conn.set_input_focus(InputFocus::POINTER_ROOT, self.root, x11rb::CURRENT_TIME)
-                .unwrap();
-            self.conn.flush().unwrap();
+            let _ = self.conn.set_input_focus(InputFocus::POINTER_ROOT, self.root, x11rb::CURRENT_TIME);
+            let _ = self.conn.flush();
             self.update_bar();
         }
     }
@@ -126,7 +124,7 @@ impl WM {
         self.focus(ws_windows[prev_idx]);
     }
 
-    // ── Manage / Unmanage for workspace ───────────────────────────────────────────────
+    // ── Manage / Unmanage ───────────────────────────────────────────────
 
     pub fn manage(&mut self, win: Window) {
         if win == self.bar.window { return; }
@@ -143,7 +141,7 @@ impl WM {
 
         let client = Client::new(win, self.current_ws);
         self.clients.push(client);
-        self.conn.map_window(win).unwrap();
+        let _ = self.conn.map_window(win);
         self.apply_layout();
         self.focus(win);
     }
@@ -178,11 +176,49 @@ impl WM {
                 32, win, wm_protocols,
                 [wm_delete, x11rb::CURRENT_TIME, 0, 0, 0],
             );
-            self.conn.send_event(false, win, EventMask::NO_EVENT, event).unwrap();
+            let _ = self.conn.send_event(false, win, EventMask::NO_EVENT, event);
         } else {
-            self.conn.kill_client(win).unwrap();
+            let _ = self.conn.kill_client(win);
         }
-        self.conn.flush().unwrap();
+        let _ = self.conn.flush();
+    }
+
+    // ── Window swapping ─────────────────────────────────────────────────
+
+    /// Swap the focused window with the next one in the stack
+    pub fn swap_next(&mut self) {
+        let ws_indices: Vec<usize> = self.clients.iter().enumerate()
+            .filter(|(_, c)| c.workspace == self.current_ws)
+            .map(|(i, _)| i).collect();
+        if ws_indices.len() < 2 { return; }
+
+        let Some(focused_win) = self.focused else { return };
+        let Some(pos) = ws_indices.iter().position(|&i| self.clients[i].window == focused_win) else { return };
+        let next_pos = (pos + 1) % ws_indices.len();
+
+        let a = ws_indices[pos];
+        let b = ws_indices[next_pos];
+        self.clients.swap(a, b);
+        self.apply_layout();
+        self.focus(focused_win);
+    }
+
+    /// Swap the focused window with the previous one in the stack
+    pub fn swap_prev(&mut self) {
+        let ws_indices: Vec<usize> = self.clients.iter().enumerate()
+            .filter(|(_, c)| c.workspace == self.current_ws)
+            .map(|(i, _)| i).collect();
+        if ws_indices.len() < 2 { return; }
+
+        let Some(focused_win) = self.focused else { return };
+        let Some(pos) = ws_indices.iter().position(|&i| self.clients[i].window == focused_win) else { return };
+        let prev_pos = if pos == 0 { ws_indices.len() - 1 } else { pos - 1 };
+
+        let a = ws_indices[pos];
+        let b = ws_indices[prev_pos];
+        self.clients.swap(a, b);
+        self.apply_layout();
+        self.focus(focused_win);
     }
 
     // ── Workspaces ──────────────────────────────────────────────────────
@@ -194,7 +230,7 @@ impl WM {
         for c in &self.clients {
             if c.workspace == self.current_ws {
                 self.pending_unmaps.push(c.window);
-                self.conn.unmap_window(c.window).unwrap();
+                let _ = self.conn.unmap_window(c.window);
             }
         }
 
@@ -203,11 +239,11 @@ impl WM {
         // map new workspace windows
         for c in &self.clients {
             if c.workspace == self.current_ws {
-                self.conn.map_window(c.window).unwrap();
+                let _ = self.conn.map_window(c.window);
             }
         }
 
-        self.conn.flush().unwrap();
+        let _ = self.conn.flush();
         self.apply_layout();
         self.focus_top();
     }
@@ -222,8 +258,8 @@ impl WM {
 
         if ws != self.current_ws {
             self.pending_unmaps.push(win);
-            self.conn.unmap_window(win).unwrap();
-            self.conn.flush().unwrap();
+            let _ = self.conn.unmap_window(win);
+            let _ = self.conn.flush();
             self.focused = None;
             self.apply_layout();
             self.focus_top();
@@ -255,10 +291,10 @@ impl WM {
         self.apply_layout();
 
         if is_now_fullscreen {
-            self.conn.configure_window(win, &ConfigureWindowAux::new()
+            let _ = self.conn.configure_window(win, &ConfigureWindowAux::new()
                 .stack_mode(StackMode::ABOVE)
-            ).unwrap();
-            self.conn.flush().unwrap();
+            );
+            let _ = self.conn.flush();
         }
     }
 
