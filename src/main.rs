@@ -114,11 +114,25 @@ fn main() {
 
     let mut wm = WM::new(conn, root, screen_width, screen_height, bar);
     let mut last_ws: usize = 0; // for Super+Tab
+    let mut last_bar_update = std::time::Instant::now();
     wm.update_bar();
 
     // ── Event loop ──────────────────────────────────────────────────
     loop {
-        let event = wm.conn.wait_for_event().expect("X11 connection error");
+        // poll for events (non-blocking) so we can update the clock
+        let event = match wm.conn.poll_for_event() {
+            Ok(Some(ev)) => ev,
+            Ok(None) => {
+                // no event — update bar clock every second
+                if last_bar_update.elapsed().as_secs() >= 1 {
+                    wm.update_bar();
+                    last_bar_update = std::time::Instant::now();
+                }
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                continue;
+            }
+            Err(_) => break, // X11 connection lost
+        };
         match event {
             Event::MapRequest(e) => {
                 wm.manage(e.window);
