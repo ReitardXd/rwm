@@ -2,9 +2,7 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
-## Screenshot
-
-![rwm desktop screenshot](rwm.jpeg)
+No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
 
 ## Features
 
@@ -16,7 +14,8 @@ A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 - **Kill focused window** — graceful `WM_DELETE_WINDOW`, falls back to `XKillClient`
 - **Gaps** — configurable pixel gaps between windows and screen edges
 - **9 workspaces** — switch with `Super+1..9`, move windows with `Super+Shift+1..9`, or click the bar
-- **Clickable status bar** — workspace indicators + focused window title
+- **Clickable status bar** — workspace indicators + focused window title + clock
+- **Built-in clock** — displays current time and date on the top-right of the bar
 - **Fullscreen toggle** — `Super+f`, covers entire screen including bar
 - **Wallpaper** — auto-set via `xwallpaper` on startup (configurable path)
 - **Compositor** — picom launched on startup for transparency
@@ -137,6 +136,23 @@ pub const BAR_SEL_BG: u32  = 0x005577;
 
 The master area defaults to 55% width and can be adjusted at runtime with `Super+h`/`Super+l`.
 
+### Changing wallpaper
+
+Edit the `WALLPAPER` constant in `src/config.rs` to the absolute path of your image, then rebuild:
+
+```bash
+# 1. Edit the path
+# In src/config.rs, change:
+#   pub const WALLPAPER: &str = "/path/to/your/image.png";
+
+# 2. Rebuild
+cargo build --release
+
+# 3. Log out and back in (or restart rwm)
+```
+
+Supports any format `xwallpaper` handles (PNG, JPG, etc.). The image is scaled to fill the screen (`--zoom`).
+
 ## Project Structure
 
 ```
@@ -146,7 +162,7 @@ src/
 ├── keys.rs      keysym constants, XF86 media keys, keycode translation
 ├── client.rs    per-window state: geometry, fullscreen, workspace
 ├── layout.rs    pure-geometry tiling math with adjustable mfact (no X11 calls)
-├── bar.rs       status bar: clickable workspace indicators + window title
+├── bar.rs       status bar: clickable workspace indicators + window title + clock
 └── wm.rs        core WM: manage, focus, kill, workspaces, fullscreen, mfact, window swapping
 ```
 

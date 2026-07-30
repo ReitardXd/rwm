@@ -6,9 +6,14 @@ pub const TERMINAL: &str    = "alacritty"; // add whatever terminal you like her
 pub const LAUNCHER: &str    = "dmenu_run"; // app launcher (Super+d) probably going to change to
                                            // rmenu when i get a job and start tsoding lol 
 pub const BROWSER: &str     = "librewolf"; //web browser (Super+w)
-pub const WALLPAPER: &str   = "/home/reitard/Projects/mp/rwm/miku.png"; //change this to the path
+pub const WALLPAPER: &str   = "/home/reitard/Pictures/wallpapers/evangelion.jpg"; //change this to the path of your wallpaper image also you do nneed to recompile so just run this cargo build --release && killall rwm && ./target/release/rwm and login again
                                                                         //of your wallpaperimage
-pub const EDITOR: &str      = "emacs";
+                                                                        //also you do need to
+                                                                        //recompile the project for
+                                                                        //it to update the new
+                                                                        //wallperp just run this 
+                                                                        //cargo build --rel
+pub const EDITOR: &str      = "nvim";
 pub const GAP: u32          = 5; //Gap between windows
 pub const BAR_HEIGHT: u16   = 20; 
 pub const NUM_WORKSPACES: usize = 9;
