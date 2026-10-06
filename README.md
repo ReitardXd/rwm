@@ -2,7 +2,6 @@
 
 A minimal, dwm-inspired tiling window manager written in Rust using `x11rb`.
 
-No bloat. No config parsers. Just a clean master-stack layout with sane defaults.
 
 ## Features
 
@@ -81,6 +80,10 @@ No bloat. No config parsers. Just a clean master-stack layout with sane defaults
 |---------|--------|
 | `Print` | Full screenshot (maim) |
 | `Shift + Print` | maimpick (selection) |
+
+## Project Screenshot
+
+![RWM Screenshot](rwm.jpeg)
 
 ## Build
 
